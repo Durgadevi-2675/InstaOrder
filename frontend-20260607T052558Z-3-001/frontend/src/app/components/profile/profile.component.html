@@ -1,0 +1,895 @@
+<div class="profile-container">
+  <!-- Profile Header -->
+  <div class="profile-header">
+    <div class="profile-avatar">
+      <div class="avatar-circle">
+        {{ getUserInitials() }}
+      </div>
+    </div>
+    <div class="profile-info">
+      <h1>{{ getUserDisplayName() }}</h1>
+      <p class="user-type">{{ user?.userType | titlecase }} Account</p>
+      <p class="user-email">{{ user?.email }}</p>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="profile-tabs">
+    <button 
+      class="tab-button"
+      [class.active]="activeTab === 'profile'"
+      (click)="setActiveTab('profile')">
+      <span class="tab-icon">👤</span>
+      Profile Information
+    </button>
+    <button 
+      class="tab-button"
+      [class.active]="activeTab === 'password'"
+      (click)="setActiveTab('password')">
+      <span class="tab-icon">🔒</span>
+      Security
+    </button>
+    <button 
+      class="tab-button"
+      [class.active]="activeTab === 'inventory'"
+      (click)="setActiveTab('inventory')"
+      *ngIf="isSeller()">
+      <span class="tab-icon">📦</span>
+      Inventory Management
+    </button>
+    <button 
+      class="tab-button"
+      [class.active]="activeTab === 'orders'"
+      (click)="setActiveTab('orders')"
+      *ngIf="!isSeller()">
+      <span class="tab-icon">📦</span>
+      Order History
+    </button>
+    <button 
+      class="tab-button"
+      [class.active]="activeTab === 'settings'"
+      (click)="setActiveTab('settings')">
+      <span class="tab-icon">⚙️</span>
+      Settings
+    </button>
+  </div>
+
+  <!-- Success/Error Messages -->
+  @if (successMessage || errorMessage) {
+    <div class="message-container">
+      @if (successMessage) {
+        <div class="success-message">
+          <span class="message-icon">✅</span>
+          {{ successMessage }}
+        </div>
+      }
+      @if (errorMessage) {
+        <div class="error-message">
+          <span class="message-icon">❌</span>
+          {{ errorMessage }}
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Profile Information Tab -->
+  @if (activeTab === 'profile') {
+    <div class="tab-content">
+      <div class="section-header">
+        <h2>Personal Information</h2>
+        <button 
+          class="edit-btn"
+          (click)="toggleEditMode()"
+          [class.cancel]="isEditMode">
+          {{ isEditMode ? 'Cancel' : 'Edit Profile' }}
+        </button>
+      </div>
+
+      <form [formGroup]="profileForm" (ngSubmit)="onSubmitProfile()" class="profile-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="firstName">First Name *</label>
+            <input 
+              type="text" 
+              id="firstName"
+              formControlName="firstName"
+              [readonly]="!isEditMode"
+              [class.readonly]="!isEditMode"
+              placeholder="Enter your first name">
+            @if (getFormError('firstName')) {
+              <div class="error-message">
+                {{ getFormError('firstName') }}
+              </div>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="lastName">Last Name *</label>
+            <input 
+              type="text" 
+              id="lastName"
+              formControlName="lastName"
+              [readonly]="!isEditMode"
+              [class.readonly]="!isEditMode"
+              placeholder="Enter your last name">
+            @if (getFormError('lastName')) {
+              <div class="error-message">
+                {{ getFormError('lastName') }}
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input 
+              type="text" 
+              id="username"
+              formControlName="username"
+              [readonly]="!isEditMode"
+              [class.readonly]="!isEditMode"
+              placeholder="Enter your username (optional)">
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input 
+              type="email" 
+              id="email"
+              formControlName="email"
+              readonly
+              class="readonly"
+              title="Email cannot be changed">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="phone">Phone Number *</label>
+            <input 
+              type="tel" 
+              id="phone"
+              formControlName="phone"
+              [readonly]="!isEditMode"
+              [class.readonly]="!isEditMode"
+              placeholder="Enter your phone number">
+            @if (getFormError('phone')) {
+              <div class="error-message">
+                {{ getFormError('phone') }}
+              </div>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="userType">Account Type</label>
+            <input 
+              type="text" 
+              [value]="user?.userType | titlecase"
+              readonly
+              class="readonly"
+              title="Account type cannot be changed">
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="address">Address *</label>
+          <textarea 
+            id="address"
+            formControlName="address"
+            [readonly]="!isEditMode"
+            [class.readonly]="!isEditMode"
+            placeholder="Enter your full address"
+            rows="3"></textarea>
+          @if (getFormError('address')) {
+            <div class="error-message">
+              {{ getFormError('address') }}
+            </div>
+          }
+        </div>
+
+        @if (isEditMode) {
+          <div class="form-actions">
+            <button 
+              type="submit" 
+              class="save-btn"
+              [disabled]="profileForm.invalid || isLoading">
+              @if (isLoading) {
+                <span class="loading-spinner"></span>
+              }
+              {{ isLoading ? 'Saving...' : 'Save Changes' }}
+            </button>
+            <button type="button" class="cancel-btn" (click)="toggleEditMode()">
+              Cancel
+            </button>
+          </div>
+        }
+      </form>
+    </div>
+  }
+
+  <!-- Security Tab -->
+  @if (activeTab === 'password') {
+    <div class="tab-content">
+      <div class="section-header">
+        <h2>Security Settings</h2>
+        <button 
+          class="edit-btn"
+          (click)="togglePasswordChange()"
+          [class.cancel]="isChangingPassword">
+          {{ isChangingPassword ? 'Cancel' : 'Change Password' }}
+        </button>
+      </div>
+
+      @if (!isChangingPassword) {
+        <div class="security-info">
+          <div class="info-card">
+            <h3>Password</h3>
+            <p>Your password was last updated recently. Keep your account secure by using a strong password.</p>
+            <button class="change-password-btn" (click)="togglePasswordChange()">
+              Change Password
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (isChangingPassword) {
+        <form [formGroup]="passwordForm" (ngSubmit)="onSubmitPassword()" class="password-form">
+          <div class="form-group">
+            <label for="currentPassword">Current Password *</label>
+            <input 
+              type="password" 
+              id="currentPassword"
+              formControlName="currentPassword"
+              placeholder="Enter your current password">
+            @if (getPasswordError('currentPassword')) {
+              <div class="error-message">
+                {{ getPasswordError('currentPassword') }}
+              </div>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="newPassword">New Password *</label>
+            <input 
+              type="password" 
+              id="newPassword"
+              formControlName="newPassword"
+              placeholder="Enter your new password">
+            @if (getPasswordError('newPassword')) {
+              <div class="error-message">
+                {{ getPasswordError('newPassword') }}
+              </div>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="confirmPassword">Confirm New Password *</label>
+            <input 
+              type="password" 
+              id="confirmPassword"
+              formControlName="confirmPassword"
+              placeholder="Confirm your new password">
+            @if (getPasswordError('confirmPassword')) {
+              <div class="error-message">
+                {{ getPasswordError('confirmPassword') }}
+              </div>
+            }
+          </div>
+
+          <div class="password-requirements">
+            <h4>Password Requirements:</h4>
+            <ul>
+              <li>At least 8 characters long</li>
+              <li>Include at least one uppercase letter</li>
+              <li>Include at least one lowercase letter</li>
+              <li>Include at least one number</li>
+            </ul>
+          </div>
+
+          <div class="form-actions">
+            <button 
+              type="submit" 
+              class="save-btn"
+              [disabled]="passwordForm.invalid || isLoading">
+              @if (isLoading) {
+                <span class="loading-spinner"></span>
+              }
+              {{ isLoading ? 'Updating...' : 'Update Password' }}
+            </button>
+            <button type="button" class="cancel-btn" (click)="togglePasswordChange()">
+              Cancel
+            </button>
+          </div>
+        </form>
+      }
+    </div>
+  }
+
+  <!-- Inventory Management Tab (Sellers Only) -->
+  @if (activeTab === 'inventory' && isSeller()) {
+    <div class="tab-content">
+      <div class="section-header">
+        <h2>Inventory Management</h2>
+        <div class="inventory-actions">
+          <button 
+            class="bulk-update-btn"
+            (click)="bulkUpdateLowStock()"
+            [disabled]="isLoading">
+            Restock Low Items
+          </button>
+        </div>
+      </div>
+
+      <!-- Inventory Statistics -->
+      <div class="inventory-stats">
+        <div class="stat-card">
+          <h3>{{ getInventoryStats().total }}</h3>
+          <p>Total Products</p>
+        </div>
+        <div class="stat-card in-stock">
+          <h3>{{ getInventoryStats().inStock }}</h3>
+          <p>In Stock</p>
+        </div>
+        <div class="stat-card low-stock">
+          <h3>{{ getInventoryStats().lowStock }}</h3>
+          <p>Low Stock</p>
+        </div>
+        <div class="stat-card out-of-stock">
+          <h3>{{ getInventoryStats().outOfStock }}</h3>
+          <p>Out of Stock</p>
+        </div>
+        <div class="stat-card total-value">
+          <h3>₹{{ getInventoryStats().totalValue | number:'1.2-2' }}</h3>
+          <p>Total Value</p>
+        </div>
+      </div>
+
+      <!-- Inventory Filters -->
+      <div class="inventory-filters">
+        <div class="filter-group">
+          <label for="searchTerm">Search Products:</label>
+          <input 
+            type="text" 
+            id="searchTerm"
+            [(ngModel)]="searchTerm"
+            (input)="filterInventory()"
+            placeholder="Search by name or description...">
+        </div>
+
+        <!-- Updated Category Filter Section -->
+        <div class="filter-group">
+          <label for="categoryFilter">Category:</label>
+          <select 
+            id="categoryFilter"
+            [(ngModel)]="selectedCategory"
+            (change)="onCategoryChange()">
+            <option value="all">All Categories</option>
+            <option *ngFor="let category of categories" [value]="category">
+              {{ category }}
+            </option>
+          </select>
+        </div>
+        
+        <!-- Custom Category Input -->
+        @if (showCustomCategoryInput) {
+          <div class="filter-group">
+            <label for="customCategory">Enter Custom Category:</label>
+            <div class="custom-category-box">
+              <input 
+                type="text" 
+                id="customCategory"
+                [(ngModel)]="customCategoryName"
+                (input)="onCustomCategoryInput()"
+                (keypress)="onCustomCategoryKeyPress($event)"
+                placeholder="Enter category name..."
+                maxlength="50"
+                [class.error]="customCategoryError">
+              <div class="category-actions">
+                <button 
+                  class="add-category-btn"
+                  (click)="addCustomCategory()"
+                  [disabled]="!canAddCustomCategory()">
+                  Add
+                </button>
+                <button 
+                  class="cancel-category-btn"
+                  (click)="cancelCustomCategory()"
+                  type="button">
+                  Cancel
+                </button>
+              </div>
+            </div>
+            @if (customCategoryError) {
+              <div class="error-message">
+                {{ customCategoryError }}
+              </div>
+            }
+          </div>
+        }
+
+        <div class="filter-group">
+          <label for="stockFilter">Stock Status:</label>
+          <select 
+            id="stockFilter"
+            [(ngModel)]="selectedStockFilter"
+            (change)="filterInventory()">
+            <option value="all">All Items</option>
+            <option value="in-stock">In Stock</option>
+            <option value="low-stock">Low Stock</option>
+            <option value="out-of-stock">Out of Stock</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Inventory Error Message -->
+      @if (inventoryErrorMessage) {
+        <div class="error-message">
+          <span class="message-icon">❌</span>
+          {{ inventoryErrorMessage }}
+        </div>
+      }
+
+      <!-- Loading State -->
+      @if (isLoadingInventory) {
+        <div class="loading-container">
+          <div class="loading-spinner"></div>
+          <p>Loading inventory...</p>
+        </div>
+      }
+
+      <!-- Inventory Table -->
+      @if (!isLoadingInventory && filteredInventory.length > 0) {
+        <div class="inventory-table-container">
+          <table class="inventory-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Status</th>
+                <th>Availability</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of getPaginatedInventory()" 
+                  [class.low-stock-row]="item.lowStock"
+                  [class.out-of-stock-row]="item.stockStatus === 'out-of-stock'">
+                
+                <td class="product-info">
+                  <div class="product-details">
+                    <strong>{{ item.name }}</strong>
+                    <small>{{ item.description | slice:0:50 }}{{ item.description.length > 50 ? '...' : '' }}</small>
+                  </div>
+                </td>
+
+                <td>{{ item.category }}</td>
+
+                <td class="price">₹{{ item.price | number:'1.2-2' }}</td>
+
+                <td class="stock-cell">
+                  @if (editingStock[item.id]) {
+                    <div class="stock-edit">
+                      <input 
+                        type="number" 
+                        [(ngModel)]="stockUpdates[item.id]"
+                        min="0"
+                        class="stock-input">
+                      <div class="stock-actions">
+                        <button 
+                          class="save-stock-btn"
+                          (click)="updateStock(item)"
+                          [disabled]="isLoading">
+                          Save
+                        </button>
+                        <button 
+                          class="cancel-stock-btn"
+                          (click)="cancelEditingStock(item.id)">
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  } @else {
+                    <span 
+                      class="stock-quantity"
+                      [class.low-stock-text]="item.lowStock"
+                      [class.out-of-stock-text]="item.stockStatus === 'out-of-stock'">
+                      {{ item.quantity }}
+                    </span>
+                  }
+                </td>
+
+                <td>
+                  <span 
+                    class="stock-status-badge"
+                    [style.background-color]="getStockStatusColor(item.stockStatus)">
+                    {{ getStockStatusText(item.stockStatus) }}
+                  </span>
+                </td>
+
+                <td>
+                  <button 
+                    class="availability-toggle"
+                    [class.available]="item.isAvailable"
+                    [class.unavailable]="!item.isAvailable"
+                    (click)="toggleProductAvailability(item)">
+                    {{ item.isAvailable ? 'Available' : 'Unavailable' }}
+                  </button>
+                </td>
+
+                <td class="actions">
+                  @if (!editingStock[item.id]) {
+                    <button 
+                      class="edit-stock-btn"
+                      (click)="startEditingStock(item.id, item.quantity)"
+                      title="Edit Stock">
+                      ✏️
+                    </button>
+                  }
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        @if (getInventoryTotalPages() > 1) {
+          <div class="pagination">
+            <button 
+              class="pagination-btn"
+              (click)="previousInventoryPage()"
+              [disabled]="currentPage === 1">
+              Previous
+            </button>
+            
+            <span class="pagination-info">
+              Page {{ currentPage }} of {{ getInventoryTotalPages() }}
+              ({{ filteredInventory.length }} items)
+            </span>
+            
+            <button 
+              class="pagination-btn"
+              (click)="nextInventoryPage()"
+              [disabled]="currentPage === getInventoryTotalPages()">
+              Next
+            </button>
+          </div>
+        }
+      }
+
+      <!-- No Inventory Message -->
+      @if (!isLoadingInventory && filteredInventory.length === 0 && inventoryItems.length > 0) {
+        <div class="no-results">
+          <p>No products match your current filters.</p>
+          <button class="clear-filters-btn" (click)="clearInventoryFilters()">
+            Clear Filters
+          </button>
+        </div>
+      }
+
+      @if (!isLoadingInventory && inventoryItems.length === 0) {
+        <div class="empty-inventory">
+          <div class="empty-icon">📦</div>
+          <h3>No Products Yet</h3>
+          <p>You haven't added any products to your inventory yet.</p>
+          <button class="add-product-btn" (click)="router.navigate(['/add-product'])">
+            Add Your First Product
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Order History Tab (Customers Only) -->
+  @if (activeTab === 'orders' && !isSeller()) {
+    <div class="tab-content">
+      <div class="section-header">
+        <h2>Order History</h2>
+        <div class="order-filters">
+          <select 
+            [(ngModel)]="selectedOrderStatus" 
+            (change)="filterOrders()"
+            class="filter-select">
+            <option value="all">All Orders</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="preparing">Preparing</option>
+            <option value="ready">Ready</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+      </div>
+
+      @if (isLoadingOrders) {
+        <div class="loading-container">
+          <div class="loading-spinner"></div>
+          <p>Loading your orders...</p>
+        </div>
+      }
+
+      @if (!isLoadingOrders && orderErrorMessage) {
+        <div class="error-message">
+          <span class="message-icon">❌</span>
+          {{ orderErrorMessage }}
+        </div>
+      }
+
+      @if (!isLoadingOrders && !orderErrorMessage && filteredOrders.length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon">📦</div>
+          <h3>No Orders Found</h3>
+          <p>{{ selectedOrderStatus === 'all' ? 'You haven\'t placed any orders yet.' : 'No orders found with the selected status.' }}</p>
+          <button class="browse-btn" (click)="router.navigate(['/products'])">
+            Browse Products
+          </button>
+        </div>
+      }
+
+      @if (!isLoadingOrders && !orderErrorMessage && filteredOrders.length > 0) {
+        <div class="orders-summary">
+          <div class="summary-stats">
+            <div class="stat-card">
+              <span class="stat-number">{{ customerOrders.length }}</span>
+              <span class="stat-label">Total Orders</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-number">{{ getOrderCountByStatus('completed') }}</span>
+              <span class="stat-label">Completed</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-number">{{ getOrderCountByStatus('pending') + getOrderCountByStatus('confirmed') }}</span>
+              <span class="stat-label">Active</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-number">₹{{ getTotalSpent() }}</span>
+              <span class="stat-label">Total Spent</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="orders-list">
+          @for (order of filteredOrders; track order.id) {
+            <div class="order-card" [class]="'status-' + order.status">
+              <div class="order-header">
+                <div class="order-info">
+                  <h4 class="order-title">Order #{{ order.id.slice(-8).toUpperCase() }}</h4>
+                  <span class="order-date">{{ formatOrderDate(order.orderDate) }}</span>
+                </div>
+                <div class="order-status">
+                  <span class="status-badge" [style.background-color]="getOrderStatusColor(order.status)">
+                    {{ getOrderStatusText(order.status) }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="order-content">
+                <div class="product-info">
+                  @if (order.productInfo?.image) {
+                    <img 
+                      [src]="order.productInfo?.image" 
+                      [alt]="order.productInfo?.name || 'Product'"
+                      class="product-image"
+                      (error)="onImageError($event)">
+                  }
+                  <div class="product-details">
+                    <h5 class="product-name">{{ order.productInfo?.name || order.items[0].productName || 'Product' }}</h5>
+                    <p class="shop-name">{{ order.shopName || order.items[0].shopName || 'Shop' }}</p>
+                    <div class="quantity-price">
+                      <span class="quantity">Qty: {{ getOrderQuantity(order) }}</span>
+                      <span class="price">₹{{ order.totalAmount | number:'1.2-2' }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                @if (order.specialInstructions || order.notes) {
+                  <div class="order-notes">
+                    <strong>Special Instructions:</strong>
+                    <p>{{ order.specialInstructions || order.notes }}</p>
+                  </div>
+                }
+
+                <div class="order-actions">
+                  @if (order.status === 'completed') {
+                    <button class="action-btn primary" (click)="reorderItems(order)">
+                      Order Again
+                    </button>
+                  }
+                  @if (order.status === 'pending') {
+                    <button class="action-btn danger" (click)="cancelOrder(order)">
+                      Cancel Order
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Pagination if needed -->
+        @if (filteredOrders.length > 10) {
+          <div class="pagination">
+            <button class="pagination-btn" [disabled]="currentPage === 1" (click)="previousPage()">
+              Previous
+            </button>
+            <span class="page-info">Page {{ currentPage }} of {{ getTotalPages() }}</span>
+            <button class="pagination-btn" [disabled]="currentPage === getTotalPages()" (click)="nextPage()">
+              Next
+            </button>
+          </div>
+        }
+      }
+    </div>
+  }
+
+  <!-- Settings Tab -->
+  @if (activeTab === 'settings') {
+    <div class="tab-content">
+      <div class="section-header">
+        <h2>Account Settings</h2>
+      </div>
+
+      <div class="settings-section">
+        <h3>Preferences</h3>
+        <div class="setting-item">
+          <label>
+            <input type="checkbox" checked>
+            Email notifications for orders
+          </label>
+        </div>
+        <div class="setting-item">
+          <label>
+            <input type="checkbox" checked>
+            SMS notifications for delivery updates
+          </label>
+        </div>
+        <div class="setting-item">
+          <label>
+            <input type="checkbox">
+            Marketing emails and promotions
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Quick Actions</h3>
+        <div class="quick-actions-grid">
+          <button class="action-card" (click)="navigateToOrders()">
+            <span class="action-icon">📦</span>
+            <span>My Orders</span>
+          </button>
+          <button class="action-card" (click)="navigateToFavorites()">
+            <span class="action-icon">❤️</span>
+            <span>Favorites</span>
+          </button>
+          @if (isSeller()) {
+            <button class="action-card" (click)="navigateToAddProduct()">
+              <span class="action-icon">➕</span>
+              <span>Add Product</span>
+            </button>
+          }
+          <button class="action-card" (click)="router.navigate(['/support'])">
+            <span class="action-icon">💬</span>
+            <span>Help & Support</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="settings-section danger-section">
+        <h3>Danger Zone</h3>
+        <div class="danger-item">
+          <div class="danger-info">
+            <h4>Delete Account</h4>
+            <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
+          </div>
+          <button class="danger-btn" (click)="deleteAccount()">
+            Delete Account
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- Delete Account Confirmation Modal -->
+@if (showDeleteConfirmation) {
+  <div class="modal-overlay" (click)="cancelAccountDeletion()">
+    <div class="delete-account-modal" (click)="$event.stopPropagation()">
+      
+      <!-- Step 1: Initial Warning -->
+      @if (deleteConfirmationStep === 1) {
+        <div class="modal-header danger-header">
+          <h3>⚠️ Delete Account</h3>
+          <button class="modal-close" (click)="cancelAccountDeletion()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="warning-content">
+            <div class="warning-icon">🗑️</div>
+            <h4>Are you sure you want to delete your account?</h4>
+            <p>This will permanently delete:</p>
+            <ul class="deletion-list">
+              @if (isSeller()) {
+                <li>Your seller profile and shop information</li>
+                <li>All your products ({{ getInventoryStats().total }} products)</li>
+                <li>All orders related to your products</li>
+                <li>Your sales history and analytics</li>
+              } @else {
+                <li>Your customer profile and personal information</li>
+                <li>Your complete order history</li>
+                <li>Saved addresses and preferences</li>
+                <li>Account settings and data</li>
+              }
+            </ul>
+            <div class="danger-warning">
+              <strong>⚠️ This action cannot be undone!</strong>
+              <p>Once deleted, your account and all associated data will be permanently removed from our system.</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" (click)="cancelAccountDeletion()">
+            Cancel
+          </button>
+          <button class="btn btn-danger" (click)="proceedToPasswordConfirmation()">
+            I Understand, Proceed
+          </button>
+        </div>
+      }
+
+      <!-- Step 2: Password Confirmation -->
+      @if (deleteConfirmationStep === 2) {
+        <div class="modal-header danger-header">
+          <h3>🔐 Confirm Account Deletion</h3>
+          <button class="modal-close" (click)="cancelAccountDeletion()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="password-confirmation">
+            <div class="final-warning">
+              <h4>Final Step: Enter Your Password</h4>
+              <p>To confirm the permanent deletion of your {{ user?.userType }} account, please enter your password:</p>
+            </div>
+            
+            <div class="form-group">
+              <label for="deletePassword">Current Password *</label>
+              <input 
+                type="password" 
+                id="deletePassword"
+                [(ngModel)]="deletePassword"
+                placeholder="Enter your current password"
+                class="form-control"
+                [disabled]="isDeletingAccount">
+            </div>
+
+            <div class="final-confirmation">
+              <label class="checkbox-label">
+                <input type="checkbox" required>
+                I confirm that I want to permanently delete my account and understand this action cannot be undone.
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" (click)="goBackToFirstStep()" [disabled]="isDeletingAccount">
+            ← Go Back
+          </button>
+          <button class="btn btn-outline" (click)="cancelAccountDeletion()" [disabled]="isDeletingAccount">
+            Cancel
+          </button>
+          <button 
+            class="btn btn-danger" 
+            (click)="confirmAccountDeletion()"
+            [disabled]="!deletePassword.trim() || isDeletingAccount">
+            @if (isDeletingAccount) {
+              <span class="loading-spinner"></span>
+              Deleting Account...
+            } @else {
+              🗑️ Delete Account Permanently
+            }
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+}

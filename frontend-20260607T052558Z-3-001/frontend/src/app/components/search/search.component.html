@@ -1,0 +1,130 @@
+<div class="search-container">
+  <form [formGroup]="searchForm" class="search-form">
+    <!-- Location Selection Row -->
+    <div class="location-search-row">
+      <h3 class="search-title">Find Products in Your Area</h3>
+      <div class="location-inputs">
+        <div class="search-field district-field">
+          <label for="district">District</label>
+          <select formControlName="district" class="form-control" id="district">
+            <option value="">Select District</option>
+            @for (district of districts; track district) {
+              <option [value]="district">{{ district }}</option>
+            }
+          </select>
+        </div>
+        
+        <div class="search-field city-field">
+          <label for="city">City/Area</label>
+          <select formControlName="city" class="form-control" id="city" [disabled]="!searchForm.get('district')?.value">
+            <option value="">Select City/Area</option>
+            @for (city of availableCities; track city) {
+              <option [value]="city">{{ city }}</option>
+            }
+          </select>
+        </div>
+        
+        <div class="search-field search-button">
+          <button type="button" (click)="searchProducts()" class="btn btn-primary" [disabled]="!isSearchEnabled()">
+            <span class="search-icon">🔍</span>
+            Search Products
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Optional Filters Row (shows after location is selected) -->
+    @if (searchForm.get('district')?.value && searchForm.get('city')?.value) {
+      <div class="filters-row">
+        <div class="search-field">
+          <label for="searchTerm">Product Search</label>
+          <input
+            type="text"
+            formControlName="searchTerm"
+            placeholder="Search by product name..."
+            class="form-control"
+            id="searchTerm">
+        </div>
+        
+        <div class="search-field">
+          <label for="category">Category</label>
+          <select formControlName="category" class="form-control" id="category">
+            <option value="">All Categories</option>
+            @for (category of categories; track category) {
+              <option [value]="category">{{ category }}</option>
+            }
+          </select>
+        </div>
+
+        @if (showCustomCategory) {
+          <div class="search-field">
+            <label for="customCategory">Custom Category</label>
+            <input
+              type="text"
+              formControlName="customCategory"
+              placeholder="Enter custom category..."
+              class="form-control"
+              id="customCategory">
+          </div>
+        }
+
+        <div class="search-field">
+          <label for="minPrice">Min Price (₹)</label>
+          <input
+            type="number"
+            formControlName="minPrice"
+            placeholder="0"
+            class="form-control"
+            id="minPrice">
+        </div>
+        
+        <div class="search-field">
+          <label for="maxPrice">Max Price (₹)</label>
+          <input
+            type="number"
+            formControlName="maxPrice"
+            placeholder="Any"
+            class="form-control"
+            id="maxPrice">
+        </div>
+      </div>
+    }
+
+    <!-- Search Actions -->
+    @if (searchForm.get('district')?.value && searchForm.get('city')?.value) {
+      <div class="search-actions">
+        <button type="button" (click)="clearFilters()" class="btn btn-outline">
+          Clear Filters
+        </button>
+        <div class="search-info">
+          <span class="location-info">Showing products in: {{ getSelectedLocationName() }}</span>
+        </div>
+        @if (isLoading) {
+          <div class="loading-indicator">
+            <span class="loading-spinner"></span>
+            Loading products...
+          </div>
+        }
+      </div>
+    }
+  </form>
+
+  <!-- Search Results Summary -->
+  @if (hasSearched && !isLoading) {
+    <div class="search-summary">
+      <div class="results-count">
+        @if (totalResults > 0) {
+          <span>Found {{ totalResults }} products in {{ getSelectedLocationName() }}</span>
+        }
+        @if (totalResults === 0) {
+          <span class="no-results">No products found in {{ getSelectedLocationName() }}</span>
+        }
+      </div>
+      @if (totalSellers > 0) {
+        <div class="seller-count">
+          <span>From {{ totalSellers }} local sellers</span>
+        </div>
+      }
+    </div>
+  }
+</div>

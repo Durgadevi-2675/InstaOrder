@@ -1,0 +1,112 @@
+<div class="map-container">
+  <div class="map-header">
+    <h1>Shop Locations</h1>
+    <p>Find nearby shops and their products</p>
+  </div>
+
+  <div class="map-content">
+    <div class="map-wrapper">
+      <div id="map" class="map"></div>
+      
+      <div *ngIf="isLoading" class="map-loading">
+        <div class="loading-spinner large"></div>
+        <p>Loading nearby shops...</p>
+      </div>
+    </div>
+
+    <div class="shop-panel" *ngIf="selectedShop" [@slideIn]>
+      <div class="panel-header">
+        <button class="close-panel" (click)="closeShopPanel()">&times;</button>
+        <h2>{{ selectedShop.name }}</h2>
+        <p class="shop-distance">{{ getDistance(selectedShop) }}</p>
+      </div>
+
+      <div class="panel-content">
+        <div class="shop-info">
+          <p class="shop-description">{{ selectedShop.description }}</p>
+          
+          <div class="shop-details">
+            <div class="detail-item">
+              <strong>Address:</strong> {{ selectedShop.address }}
+            </div>
+            <div class="detail-item">
+              <strong>Phone:</strong> {{ selectedShop.phone }}
+            </div>
+            <div class="detail-item" *ngIf="selectedShop.website">
+              <strong>Website:</strong> 
+              <a [href]="selectedShop.website" target="_blank">{{ selectedShop.website }}</a>
+            </div>
+            <div class="detail-item">
+              <strong>Rating:</strong>
+              <span class="shop-rating">
+                <span class="stars">{{ '★'.repeat(Math.floor(selectedShop.rating)) }}</span>
+                <span class="rating-text">{{ selectedShop.rating }} ({{ selectedShop.reviewCount }} reviews)</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="shop-categories">
+            <span *ngFor="let category of selectedShop.categories" class="category-tag">
+              {{ category }}
+            </span>
+          </div>
+        </div>
+
+        <div class="shop-products">
+          <h3>Available Products</h3>
+          
+          <div *ngIf="shopProducts.length === 0" class="no-products">
+            <p>No products available at this shop.</p>
+          </div>
+
+          <div class="products-list" *ngIf="shopProducts.length > 0">
+            <div *ngFor="let product of shopProducts" class="product-item">
+              <div class="product-image">
+                <img [src]="product.images[0] || '/assets/placeholder-product.jpg'" 
+                     [alt]="product.name">
+              </div>
+              
+              <div class="product-details">
+                <h4>{{ product.name }}</h4>
+                <p class="product-description">{{ product.description | slice:0:80 }}...</p>
+                
+                <div class="product-meta">
+                  <span class="product-price">{{ formatPrice(product.price) }}</span>
+                  <span class="product-quantity">{{ product.quantity }} available</span>
+                </div>
+                
+                <button 
+                  class="btn btn-primary btn-sm"
+                  [disabled]="!product.isAvailable">
+                  {{ product.isAvailable ? 'Reserve' : 'Sold Out' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shops-list" *ngIf="nearbyShops.length > 0 && !selectedShop">
+    <h3>Nearby Shops</h3>
+    <div class="shops-grid">
+      <div *ngFor="let shop of nearbyShops" 
+           class="shop-card"
+           (click)="selectShop(shop)">
+        <div class="shop-card-header">
+          <h4>{{ shop.name }}</h4>
+          <span class="distance">{{ getDistance(shop) }}</span>
+        </div>
+        <p class="shop-card-description">{{ shop.description | slice:0:100 }}...</p>
+        <div class="shop-card-footer">
+          <span class="shop-rating">
+            <span class="stars">{{ '★'.repeat(Math.floor(shop.rating)) }}</span>
+            <span class="rating-text">{{ shop.rating }}</span>
+          </span>
+          <span class="category-count">{{ shop.categories.length }} categories</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

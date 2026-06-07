@@ -1,0 +1,325 @@
+.search-container {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
+  border: 1px solid #e1e5e9;
+}
+
+.search-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.search-title {
+  margin: 0 0 1rem 0;
+  color: #2c5aa0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Location Search Row */
+.location-search-row {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 2px solid #2c5aa0;
+}
+
+.location-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 1rem;
+  align-items: end;
+}
+
+/* Filters Row */
+.filters-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f1f3f5;
+  border-radius: 8px;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Search Field Styling */
+.search-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.search-field label {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.form-control {
+  padding: 12px;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s;
+  background: white;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #2c5aa0;
+  box-shadow: 0 0 0 3px rgba(44, 90, 160, 0.1);
+}
+
+.form-control:disabled {
+  background: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+/* Button Styling */
+.btn {
+  padding: 12px 20px;
+  border: 2px solid #2c5aa0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: #2c5aa0;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #1e3a8a;
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  background: #94a3b8;
+  border-color: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-outline {
+  background: transparent;
+  color: #2c5aa0;
+}
+
+.btn-outline:hover {
+  background: #2c5aa0;
+  color: white;
+}
+
+.search-icon {
+  font-size: 1.1rem;
+}
+
+/* Search Actions */
+.search-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.search-info {
+  flex: 1;
+  text-align: center;
+}
+
+.location-info {
+  color: #6b7280;
+  font-style: italic;
+  font-weight: 500;
+}
+
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #2c5aa0;
+  font-weight: 500;
+}
+
+.loading-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #e1e5e9;
+  border-top: 2px solid #2c5aa0;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Search Summary */
+.search-summary {
+  padding: 1rem;
+  background: #f0f4f8;
+  border-radius: 8px;
+  border-left: 4px solid #2c5aa0;
+  margin-top: 1rem;
+}
+
+.results-count {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c5aa0;
+  margin-bottom: 0.5rem;
+}
+
+.no-results {
+  color: #dc2626;
+}
+
+.seller-count {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* Custom Category Field Styles */
+.custom-category-group {
+  animation: slideDown 0.3s ease-out;
+  border: 2px solid #e3f2fd;
+  border-radius: 8px;
+  padding: 1rem;
+  background: #f8fffe;
+  position: relative;
+}
+
+.custom-category-group::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #007bff, #28a745);
+  border-radius: 8px;
+  z-index: -1;
+  animation: gradientBorder 3s ease infinite;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 100px;
+  }
+}
+
+@keyframes gradientBorder {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.custom-category-group label {
+  color: #007bff;
+  font-weight: 600;
+}
+
+.custom-category-group .form-control {
+  border-color: #007bff;
+  background: white;
+}
+
+.custom-category-group .form-control:focus {
+  border-color: #0056b3;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.custom-category-group .help-text {
+  color: #007bff;
+  font-style: italic;
+}
+
+/* For Search Component - adjust filters-row grid when custom category is shown */
+.filters-row.has-custom-category {
+  grid-template-columns: 1.5fr 1fr 1fr 0.75fr 0.75fr;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .search-container {
+    padding: 1rem;
+  }
+  
+  .location-inputs {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .filters-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .filters-row.has-custom-category {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .custom-category-group {
+    padding: 0.75rem;
+  }
+  
+  .search-actions {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+  
+  .search-title {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .search-container {
+    padding: 0.5rem;
+  }
+  
+  .location-search-row {
+    padding: 1rem;
+  }
+}
+
+/* Special styling for district and city fields */
+.district-field, .city-field {
+  min-width: 200px;
+}
+
+.search-button {
+  align-self: end;
+}

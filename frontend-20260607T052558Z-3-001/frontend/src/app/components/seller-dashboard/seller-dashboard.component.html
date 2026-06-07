@@ -1,0 +1,764 @@
+<header class="main-header">
+  <div class="top-bar">
+    <div class="logo">InstaOrder</div>
+  </div>
+</header>
+<div class="dashboard-container">
+  
+  <!-- User Menu -->
+  <div class="user-menu">
+    <div class="user-info" (click)="toggleUserDropdown()">
+      <div class="user-avatar">
+        <i class="user-icon">👤</i>
+      </div>
+      <!-- Show actual username from MongoDB -->
+      <span class="username">{{ getDisplayName() }}</span>
+      <i class="dropdown-arrow" [class.open]="isUserDropdownOpen">▼</i>
+    </div>
+    
+    <!-- Updated user-dropdown section with account settings -->
+    <div class="user-dropdown" [class.show]="isUserDropdownOpen">
+      <div class="dropdown-item" (click)="viewProfile()">
+        <i class="dropdown-icon">👤</i>
+        Profile
+      </div>
+     
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-item" (click)="showLogoutConfirmation()">
+        <i class="dropdown-icon">🚪</i>
+        Logout
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-header">
+    <h1>Seller Dashboard</h1>
+    <p>Welcome back, {{ currentUser?.firstName }}!</p>
+  </div>
+
+  <div class="dashboard-nav">
+    <button 
+      class="nav-btn"
+      [class.active]="currentView === 'overview'"
+      (click)="switchView('overview')">
+      <i class="nav-icon">📊</i>
+      Overview
+    </button>
+    <button 
+      class="nav-btn"
+      [class.active]="currentView === 'products'"
+      (click)="switchView('products')">
+      <i class="nav-icon">📦</i>
+      Products
+    </button>
+    <button 
+      class="nav-btn"
+      [class.active]="currentView === 'add-product'"
+      (click)="switchView('add-product')">
+      <i class="nav-icon">➕</i>
+      {{ editingProduct ? 'Edit Product' : 'Add Product' }}
+    </button>
+    <button 
+      class="nav-btn"
+      [class.active]="currentView === 'orders'"
+      (click)="switchView('orders')">
+      <span class="nav-icon-wrapper">
+        <i class="nav-icon">📋</i>
+        <span class="notification-badge" *ngIf="newOrdersCount > 0">{{ newOrdersCount }}</span>
+      </span>
+      <span>Orders</span>
+    </button>
+  </div>
+
+  <div class="dashboard-content">
+    <!-- Overview -->
+    @if (currentView === 'overview') {
+      <div class="overview-section">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">📦</div>
+            <div class="stat-info">
+              <h3>{{ stats.totalProducts }}</h3>
+              <p>Total Products</p>
+            </div>
+          </div>
+          
+          <div class="stat-card" [class.has-notification]="stats.totalOrders > 0">
+            <div class="stat-icon">📋</div>
+            <div class="stat-info">
+              <h3>{{ stats.totalOrders }}</h3>
+              <p>Total Orders</p>
+            </div>
+            <span class="stat-badge" *ngIf="newOrdersCount > 0">{{ newOrdersCount }} new</span>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-icon">💰</div>
+            <div class="stat-info">
+              <h3>{{ formatPrice(stats.totalRevenue) }}</h3>
+              <p>Total Revenue</p>
+            </div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-icon">⭐</div>
+            <div class="stat-info">
+              <h3>{{ stats.averageRating }}</h3>
+              <p>Average Rating</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="recent-activity">
+          <h2>Recent Activity</h2>
+          <div class="activity-list">
+            <!-- Show recent orders if available -->
+            <div class="activity-item" *ngFor="let order of recentOrders.slice(0, 3)">
+              <div class="activity-icon">🛒</div>
+              <div class="activity-details">
+                <p><strong>New order from {{ order.customerInfo.name }}</strong></p>
+                <span class="activity-description">{{ order.items[0].productName }} × {{ order.items[0].quantity }}</span>
+                <span class="activity-time">{{ getRelativeTime(order.orderDate) }}</span>
+              </div>
+              <div class="activity-status">
+                <span class="status-badge" [style.background-color]="getOrderStatusColor(order.status)">
+                  {{ getOrderStatusText(order.status) }}
+                </span>
+              </div>
+            </div>
+            
+            <!-- Default activities when no orders -->
+            <div class="activity-item" *ngIf="!recentOrders.length">
+              <div class="activity-icon">📦</div>
+              <div class="activity-details">
+                <p><strong>Dashboard initialized</strong></p>
+                <span class="activity-time">Welcome to your seller dashboard!</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Products Section -->
+    @if (currentView === 'products') {
+      <div class="products-section">
+        <div class="section-header">
+          <h2>My Products ({{ products.length }})</h2>
+          <button class="btn btn-primary" (click)="switchView('add-product')">
+            <i class="btn-icon">➕</i>
+            Add New Product
+          </button>
+        </div>
+
+        @if (isLoading) {
+          <div class="loading-container" style="text-align: center; padding: 2rem;">
+            <div class="loading-spinner" style="width: 32px; height: 32px; margin: 0 auto 1rem;"></div>
+            <p>Loading products...</p>
+          </div>
+        }
+
+        @if (!isLoading && products.length === 0) {
+          <div class="no-products">
+            <div class="empty-icon">📦</div>
+            <h3>No products yet</h3>
+            <p>Start by adding your first product to the marketplace.</p>
+            <button class="btn btn-primary" (click)="switchView('add-product')">
+              <i class="btn-icon">➕</i>
+              Add Product
+            </button>
+          </div>
+        }
+
+        @if (!isLoading && products.length > 0) {
+          <div class="products-grid">
+            @for (product of products; track product.id) {
+              <div class="product-card">
+                <div class="product-image">
+                  <img [src]="product.images && product.images.length > 0 ? product.images[0] : '/assets/placeholder-product.jpg'" 
+                       [alt]="product.name"
+                       onerror="this.src='/assets/placeholder-product.jpg'">
+                  <div class="product-status available" *ngIf="product.quantity > 0">
+                    Available
+                  </div>
+                  <div class="product-status out-of-stock" *ngIf="product.quantity === 0">
+                    Out of Stock
+                  </div>
+                </div>
+                
+                <div class="product-info">
+                  <h3>{{ product.name }}</h3>
+                  <p class="product-description">
+                    {{ product.description.length > 80 ? (product.description | slice:0:80) + '...' : product.description }}
+                  </p>
+                  
+                  <div class="product-meta">
+                    <span class="product-price">{{ formatPrice(product.price) }}</span>
+                    <span class="product-quantity">{{ product.quantity }} in stock</span>
+                  </div>
+                  
+                  @if (product.tags && product.tags.length > 0) {
+                    <div class="product-tags">
+                      @for (tag of product.tags.slice(0, 3); track tag) {
+                        <span class="tag">{{ tag }}</span>
+                      }
+                    </div>
+                  }
+                  
+                  <div class="product-actions">
+                    <button class="btn btn-sm btn-outline" (click)="editProduct(product)">
+                      <i class="btn-icon">✏️</i>
+                      Edit
+                    </button>
+                    <button 
+                      class="btn btn-sm"
+                      [class.btn-success]="!product.isAvailable"
+                      [class.btn-warning]="product.isAvailable"
+                      (click)="toggleProductAvailability(product)">
+                      <i class="btn-icon">{{ product.isAvailable ? '🔒' : '🔓' }}</i>
+                      {{ product.isAvailable ? 'Disable' : 'Enable' }}
+                    </button>
+                    <button class="btn btn-sm btn-danger" (click)="deleteProduct(product)">
+                      <i class="btn-icon">🗑️</i>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Add/Edit Product Section -->
+    @if (currentView === 'add-product') {
+      <div class="add-product-section">
+        <div class="section-header">
+          <h2>{{ editingProduct ? 'Edit Product' : 'Add New Product' }}</h2>
+        </div>
+        
+        <form [formGroup]="productForm" (ngSubmit)="onProductSubmit()" class="product-form">
+          <!-- Updated form-row with name and category -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="name">Product Name *</label>
+              <input 
+                type="text" 
+                id="name" 
+                formControlName="name" 
+                class="form-control"
+                [class.error]="isFieldInvalid('name')"
+                placeholder="Enter product name">
+              @if (hasFieldError('name')) {
+                <div class="error-text">{{ getFieldError('name') }}</div>
+              }
+            </div>
+            
+            <div class="form-group">
+              <label for="category">Category *</label>
+              <select id="category" formControlName="category" 
+                      class="form-control"
+                      [class.error]="isFieldInvalid('category')">
+                <option value="">Select a category</option>
+                @for (category of categories; track category) {
+                  <option [value]="category">{{ category }}</option>
+                }
+              </select>
+              @if (hasFieldError('category')) {
+                <div class="error-text">{{ getFieldError('category') }}</div>
+              }
+            </div>
+          </div>
+
+          <!-- Add this new row for custom category (appears when Other is selected) -->
+          @if (showCustomCategory) {
+            <div class="form-row">
+              <div class="form-group custom-category-group">
+                <label for="customCategory">Custom Category *</label>
+                <input 
+                  type="text" 
+                  id="customCategory" 
+                  formControlName="customCategory" 
+                  class="form-control"
+                  [class.error]="isFieldInvalid('customCategory')"
+                  placeholder="Enter your custom category">
+                @if (hasFieldError('customCategory')) {
+                  <div class="error-text">{{ getFieldError('customCategory') }}</div>
+                }
+                <div class="help-text">Please specify the category for your product</div>
+              </div>
+              
+              <div class="form-group">
+                <!-- Empty div to maintain form-row layout -->
+              </div>
+            </div>
+          }
+
+          <!-- Shop Information Row -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="shopName">Shop Name *</label>
+              <input 
+                type="text" 
+                id="shopName" 
+                formControlName="shopName" 
+                class="form-control"
+                [class.error]="isFieldInvalid('shopName')"
+                placeholder="Enter shop name">
+              @if (hasFieldError('shopName')) {
+                <div class="error-text">{{ getFieldError('shopName') }}</div>
+              }
+            </div>
+            
+            <div class="form-group">
+              <label for="district">District *</label>
+              <select id="district" formControlName="district" 
+                      class="form-control"
+                      [class.error]="isFieldInvalid('district')">
+                <option value="">Select a district</option>
+                @for (district of districts; track district) {
+                  <option [value]="district">{{ district }}</option>
+                }
+              </select>
+              @if (hasFieldError('district')) {
+                <div class="error-text">{{ getFieldError('district') }}</div>
+              }
+            </div>
+          </div>
+
+          <!-- City Row -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="city">City *</label>
+              <select id="city" formControlName="city" 
+                      class="form-control"
+                      [class.error]="isFieldInvalid('city')"
+                      [disabled]="!availableCities.length">
+                <option value="">{{ availableCities.length ? 'Select a city' : 'Select district first' }}</option>
+                @for (city of availableCities; track city) {
+                  <option [value]="city">{{ city }}</option>
+                }
+              </select>
+              @if (hasFieldError('city')) {
+                <div class="error-text">{{ getFieldError('city') }}</div>
+              }
+            </div>
+            
+            <div class="form-group">
+              <!-- Empty div to maintain form-row layout -->
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="description">Description *</label>
+            <textarea 
+              id="description" 
+              formControlName="description" 
+              class="form-control"
+              [class.error]="isFieldInvalid('description')"
+              rows="4"
+              placeholder="Describe your product in detail..."></textarea>
+            @if (hasFieldError('description')) {
+              <div class="error-text">{{ getFieldError('description') }}</div>
+            }
+            <div class="help-text">Minimum 10 characters required</div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="price">Price ($) *</label>
+              <input 
+                type="number" 
+                id="price" 
+                formControlName="price" 
+                class="form-control"
+                [class.error]="isFieldInvalid('price')"
+                step="0.01" 
+                min="0"
+                placeholder="0.00">
+              @if (hasFieldError('price')) {
+                <div class="error-text">{{ getFieldError('price') }}</div>
+              }
+            </div>
+            
+            <div class="form-group">
+              <label for="quantity">Quantity *</label>
+              <input 
+                type="number" 
+                id="quantity" 
+                formControlName="quantity" 
+                class="form-control"
+                [class.error]="isFieldInvalid('quantity')"
+                min="0"
+                placeholder="0">
+              @if (hasFieldError('quantity')) {
+                <div class="error-text">{{ getFieldError('quantity') }}</div>
+              }
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="tags">Tags</label>
+            <input 
+              type="text" 
+              id="tags" 
+              formControlName="tags" 
+              class="form-control"
+              placeholder="e.g., electronics, wireless, headphones">
+            <div class="help-text">Separate tags with commas. These help customers find your products.</div>
+          </div>
+
+          <div class="form-group">
+            <label for="images">Product Images</label>
+            <input 
+              type="file" 
+              id="images" 
+              class="form-control-file"
+              multiple
+              accept="image/*"
+              (change)="onFileSelect($event)"
+              [disabled]="isUploadingImages">
+            @if (isUploadingImages) {
+              <div class="help-text">
+                <span class="loading-spinner"></span>
+                Uploading images...
+              </div>
+            } @else {
+              <div class="help-text">Upload product images (optional). Supported formats: JPG, PNG, GIF. Max 5MB per file.</div>
+            }
+            
+            <!-- Image Preview Section -->
+            @if (hasUploadedImages()) {
+              <div class="uploaded-images-container">
+                <div class="uploaded-images-header">
+                  <span class="images-count">{{ getUploadedImagesCount() }} image(s) uploaded</span>
+                  <button type="button" class="btn btn-sm btn-outline" (click)="clearAllImages()">
+                    <i class="btn-icon">🗑️</i>
+                    Clear All
+                  </button>
+                </div>
+                <div class="uploaded-images">
+                  @for (imageUrl of uploadedImages; track imageUrl; let i = $index) {
+                    <div class="image-preview">
+                      <img [src]="getImagePreviewUrl(imageUrl)" 
+                           alt="Product preview {{ i + 1 }}">
+                      <button type="button" 
+                              class="remove-image-btn" 
+                              (click)="removeImage(imageUrl)"
+                              title="Remove image">
+                        ×
+                      </button>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-outline" (click)="switchView('products')" [disabled]="isLoading">
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              class="btn btn-primary" 
+              [disabled]="productForm.invalid || isLoading || isUploadingImages">
+              @if (isLoading) {
+                <span class="loading-spinner"></span>
+              } @else {
+                <i class="btn-icon">{{ editingProduct ? '💾' : '➕' }}</i>
+              }
+              {{ isLoading ? 'Saving...' : (editingProduct ? 'Update Product' : 'Add Product') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    }
+
+    <!-- Orders Section -->
+    @if (currentView === 'orders') {
+      <div class="orders-section">
+        <div class="section-header">
+          <h2>Orders Management</h2>
+          <div class="order-filters">
+            <button 
+              class="btn btn-sm"
+              [class.btn-primary]="orderFilter === 'all'"
+              [class.btn-outline]="orderFilter !== 'all'"
+              (click)="setOrderFilter('all')">
+              All Orders ({{ allOrders.length }})
+            </button>
+            <button 
+              class="btn btn-sm"
+              [class.btn-primary]="orderFilter === 'pending'"
+              [class.btn-outline]="orderFilter !== 'pending'"
+              (click)="setOrderFilter('pending')">
+              Pending ({{ getPendingOrdersCount() }})
+            </button>
+            <button 
+              class="btn btn-sm"
+              [class.btn-primary]="orderFilter === 'new'"
+              [class.btn-outline]="orderFilter !== 'new'"
+              (click)="setOrderFilter('new')">
+              New Orders ({{ newOrdersCount }})
+              <span class="notification-badge" *ngIf="newOrdersCount > 0">{{ newOrdersCount }}</span>
+            </button>
+          </div>
+          <button class="btn btn-outline btn-sm" (click)="refreshOrders()" [disabled]="isLoadingOrders">
+            <i class="btn-icon">🔄</i>
+            {{ isLoadingOrders ? 'Refreshing...' : 'Refresh' }}
+          </button>
+        </div>
+
+        <!-- Loading State -->
+        @if (isLoadingOrders) {
+          <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>Loading orders...</p>
+          </div>
+        }
+
+        <!-- No Orders State -->
+        @if (!isLoadingOrders && filteredOrders.length === 0 && allOrders.length === 0) {
+          <div class="no-orders">
+            <div class="empty-icon">📋</div>
+            <h3>No orders yet</h3>
+            <p>Orders will appear here once customers start purchasing your products.</p>
+            <div class="empty-actions">
+              <button class="btn btn-primary" (click)="switchView('products')">
+                <i class="btn-icon">📦</i>
+                View My Products
+              </button>
+              <button class="btn btn-outline" (click)="refreshOrders()">
+                <i class="btn-icon">🔄</i>
+                Check Again
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- No Filtered Results -->
+        @if (!isLoadingOrders && filteredOrders.length === 0 && allOrders.length > 0) {
+          <div class="no-filtered-orders">
+            <div class="empty-icon">🔍</div>
+            <h3>No {{ orderFilter }} orders found</h3>
+            <p>Try selecting a different filter or check back later.</p>
+            <button class="btn btn-outline" (click)="setOrderFilter('all')">
+              <i class="btn-icon">📋</i>
+              Show All Orders
+            </button>
+          </div>
+        }
+
+        <!-- Orders List -->
+        @if (!isLoadingOrders && filteredOrders.length > 0) {
+          <div class="orders-list">
+            @for (order of filteredOrders; track order.id) {
+              <div class="order-card" 
+                   [class.new-order]="order.isNewOrder"
+                   [class.order-card-expanded]="expandedOrderId === order.id">
+                
+                <!-- Order Header -->
+                <div class="order-header" (click)="toggleOrderExpansion(order.id)">
+                  <div class="order-basic-info">
+                    <div class="order-id-section">
+                      <h4>Order #{{ order.id.substring(order.id.length - 8) }}</h4>
+                      <span class="new-badge" *ngIf="order.isNewOrder">NEW</span>
+                    </div>
+                    <p class="order-customer">{{ order.customerInfo.name }}</p>
+                    <p class="order-date">{{ formatOrderDate(order.orderDate) }}</p>
+                  </div>
+
+                  <div class="order-summary-info">
+                    <div class="order-product">
+                      <strong>{{ order.items[0].productName }}</strong>
+                      <span class="order-quantity">Qty: {{ order.items[0].quantity }}</span>
+                    </div>
+                    <div class="order-total">{{ formatPrice(order.totalAmount) }}</div>
+                  </div>
+
+                  <div class="order-status-section">
+                    <span class="status-badge" [style.background-color]="getOrderStatusColor(order.status)">
+                      {{ getOrderStatusText(order.status) }}
+                    </span>
+                    <i class="expand-icon" [class.expanded]="expandedOrderId === order.id">▼</i>
+                  </div>
+                </div>
+
+                <!-- Expanded Order Details -->
+                @if (expandedOrderId === order.id) {
+                  <div class="order-details">
+                    
+                    <!-- Customer Information -->
+                    <div class="detail-section">
+                      <h5>Customer Information</h5>
+                      <div class="detail-grid">
+                        <div class="detail-item">
+                          <span class="detail-label">Name:</span>
+                          <span class="detail-value">{{ order.customerInfo.name }}</span>
+                        </div>
+                        <div class="detail-item">
+                          <span class="detail-label">Phone:</span>
+                          <span class="detail-value">
+                            <a href="tel:{{ order.customerInfo.phone }}">{{ order.customerInfo.phone }}</a>
+                          </span>
+                        </div>
+                        <div class="detail-item">
+                          <span class="detail-label">Email:</span>
+                          <span class="detail-value">
+                            <a href="mailto:{{ order.customerInfo.email }}" *ngIf="order.customerInfo.email">
+                              {{ order.customerInfo.email }}
+                            </a>
+                            <span *ngIf="!order.customerInfo.email">Not provided</span>
+                          </span>
+                        </div>
+                        <div class="detail-item full-width">
+                          <span class="detail-label">Address:</span>
+                          <span class="detail-value">{{ getCustomerAddressString(order.customerInfo) }}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Product Information -->
+                    <div class="detail-section">
+                      <h5>Product Information</h5>
+                      <div class="product-detail">
+                        <img [src]="(order.productInfo?.image) || '/assets/placeholder-product.jpg'" 
+                             [alt]="order.productInfo?.name || 'Product image'"
+                             class="product-thumbnail">
+                        <div class="product-detail-info">
+                          <h6>{{ order.items[0].productName }}</h6>
+                          <p>Category: {{ order.items[0].shopName }}</p>
+                          <p>Unit Price: {{ order.items[0].price != null ? formatPrice(order.items[0].price) : 'N/A' }}</p>
+                          <p>Quantity: {{ order.items[0].quantity }}</p>
+                          <p><strong>Total: {{ formatPrice(order.totalAmount) }}</strong></p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Order Details -->
+                    <div class="detail-section">
+                      <h5>Order Details</h5>
+                      <div class="detail-grid">
+                        <div class="detail-item">
+                          <span class="detail-label">Order Date:</span>
+                          <span class="detail-value">{{ formatOrderDate(order.orderDate) }}</span>
+                        </div>
+                        <div class="detail-item">
+                          <span class="detail-label">Payment Method:</span>
+                          <span class="detail-value">{{ getPaymentMethodText(order.paymentMethod) }}</span>
+                        </div>
+                        <div class="detail-item">
+                          <span class="detail-label">Payment Status:</span>
+                          <span class="detail-value">
+                            <span class="status-badge small" [style.background-color]="getPaymentStatusColor(order.paymentStatus)">
+                              {{ order.paymentStatus }}
+                            </span>
+                          </span>
+                        </div>
+                        <div class="detail-item">
+                          <span class="detail-label">Current Status:</span>
+                          <span class="detail-value">
+                            <span class="status-badge small" [style.background-color]="getOrderStatusColor(order.status)">
+                              {{ getOrderStatusText(order.status) }}
+                            </span>
+                          </span>
+                        </div>
+                        <div class="detail-item full-width" *ngIf="order.specialInstructions">
+                          <span class="detail-label">Special Instructions:</span>
+                          <span class="detail-value">{{ order.specialInstructions }}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Order Actions -->
+                    <div class="order-actions">
+                      <div class="status-update-section">
+                        <h6>Update Order Status:</h6>
+                        <div class="status-buttons">
+                          @for (status of getAvailableStatuses(order.status); track status) {
+                            <button 
+                              class="btn btn-sm btn-outline"
+                              [style.border-color]="getOrderStatusColor(status)"
+                              [style.color]="getOrderStatusColor(status)"
+                              (click)="updateOrderStatus(order, status)"
+                              [disabled]="isUpdatingOrder">
+                              {{ getOrderStatusText(status) }}
+                            </button>
+                          }
+                        </div>
+                      </div>
+
+                      <div class="action-buttons">
+                        <button 
+                          class="btn btn-sm btn-outline" 
+                          (click)="markOrderAsRead(order)"
+                          *ngIf="order.isNewOrder"
+                          [disabled]="isMarkingRead">
+                          <i class="btn-icon">✓</i>
+                          Mark as Read
+                        </button>
+                        <button 
+                          class="btn btn-sm btn-primary" 
+                          (click)="callCustomer(order.customerInfo.phone)">
+                          <i class="btn-icon">📞</i>
+                          Call Customer
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Orders Summary -->
+          <div class="orders-summary" *ngIf="allOrders.length > 0">
+            <div class="summary-stats">
+              <div class="summary-item">
+                <span class="summary-label">Total Orders:</span>
+                <span class="summary-value">{{ allOrders.length }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Pending Orders:</span>
+                <span class="summary-value">{{ getPendingOrdersCount() }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Total Revenue:</span>
+                <span class="summary-value">{{ formatPrice(getTotalRevenue()) }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">New Orders:</span>
+                <span class="summary-value">{{ newOrdersCount }}</span>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Logout Confirmation Modal -->
+  @if (showLogoutModal) {
+    <div class="modal-overlay" (click)="hideLogoutConfirmation()">
+      <div class="logout-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Confirm Logout</h3>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to logout?</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" (click)="hideLogoutConfirmation()">
+            Cancel
+          </button>
+          <button class="btn btn-danger" (click)="confirmLogout()">
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

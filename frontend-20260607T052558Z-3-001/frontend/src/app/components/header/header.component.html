@@ -1,0 +1,68 @@
+<header class="main-header">
+  <!-- Top Blue Header Bar -->
+  <div class="top-bar">
+    <div class="logo">InstaOrder</div>
+    <div class="auth-actions">
+      <button type="button" class="login-btn" (click)="navigateToLogin()">Login</button>
+    </div>
+  </div>
+
+  <!-- Centered Search Section -->
+  <div class="search-section">
+    <div class="search-container">
+      <input type="text" placeholder="Search products, stores, categories..." />
+      <button><span class="search-icon">🔍</span></button>
+    </div>
+  </div>
+</header>
+
+<!-- Services Section -->
+<section class="services-section">
+  <div class="container">
+    <h2>Our Services</h2>
+    <div class="services-grid">
+      <div class="service-item">
+        <h3>🏪 Store Locator</h3>
+        <p>Find nearby grocery stores, supermarkets, and local vendors in your area using our interactive map view</p>
+      </div>
+      
+      <div class="service-item">
+        <h3>📊 Price Comparison</h3>
+        <p>Compare prices across different stores for the same products to ensure you get the best deals</p>
+      </div>
+      
+      <div class="service-item">
+        <h3>❤️ Favorites & Wishlist</h3>
+        <p>Save your favorite products and stores for quick access and future purchases</p>
+      </div>
+      
+      <div class="service-item">
+        <h3>🛒 Smart Cart</h3>
+        <p>Build your shopping cart and get suggestions for similar products and better deals</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Quick Actions Section -->
+<section class="quick-actions">
+  <div class="container">
+    <h2>Get Started</h2>
+    <div class="actions-grid">
+      <button class="action-btn" routerLink="/products">
+        <span class="action-icon">🛒</span>
+        <span class="action-text">Browse Products</span>
+      </button>
+      
+      <button class="action-btn" routerLink="/map">
+        <span class="action-icon">🗺️</span>
+        <span class="action-text">Find Stores</span>
+      </button>
+      
+      <button type="button" class="action-btn" (click)="navigateToLogin()">
+        <span class="action-icon">👤</span>
+        <span class="action-text">Sign In</span>
+      </button>
+    </div>
+  </div>
+</section>

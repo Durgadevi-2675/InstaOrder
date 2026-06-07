@@ -1,0 +1,306 @@
+<header class="main-header">
+  <div class="top-bar">
+    <div class="logo">InstaOrder</div>
+  </div>
+</header>
+
+<div class="product-list-container">
+  
+  <!-- User Menu -->
+  <div class="user-menu">
+    <div class="user-info" (click)="toggleUserDropdown()">
+      <div class="user-avatar">
+        <i class="user-icon">👤</i>
+      </div>
+      <span class="username">{{ getUserDisplayName() }}</span>
+      <i class="dropdown-arrow" [class.open]="isUserDropdownOpen">▼</i>
+    </div>
+    
+    <div class="user-dropdown" [class.show]="isUserDropdownOpen">
+      <div class="dropdown-item" (click)="viewProfile()">
+        <i class="dropdown-icon">👤</i>
+        Profile
+      </div>
+      <div class="dropdown-item" *ngIf="isAuthenticated()" (click)="showLogoutConfirmation()">
+        <i class="dropdown-icon">🚪</i>
+        Logout
+      </div>
+      <div class="dropdown-item" *ngIf="!isAuthenticated()" (click)="goToLogin()">
+        <i class="dropdown-icon">🚪</i>
+        Login
+      </div>
+    </div>
+  </div>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1>Products Marketplace</h1>
+    <p>Discover amazing local products from nearby shops and sellers</p>
+    <p *ngIf="isAuthenticated()">Welcome back, {{ getUserDisplayName() }}!</p>
+  </div>
+
+  <!-- Search Component -->
+  <app-search (searchResults)="onSearchResults($event)"></app-search>
+
+  <!-- Error State -->
+  <div *ngIf="error && !isLoading" class="error-container">
+    <div class="error-icon">⚠️</div>
+    <h3>Something went wrong</h3>
+    <p>{{ error }}</p>
+    <button class="btn btn-primary" (click)="retryLoading()">
+      🔄 Try Again
+    </button>
+  </div>
+
+  <!-- Initial State -->
+  <div *ngIf="!isLoading && !error && !hasLocationBasedSearch" class="initial-state">
+    <div class="empty-icon">🔍</div>
+    <h3>Choose Your Location</h3>
+    <p>Please select your district and city above to discover amazing products from local sellers near you.</p>
+  </div>
+
+  <!-- Products Results Section -->
+  <div class="products-results-section" *ngIf="searchResults">
+    
+    <!-- Loading State -->
+    <div class="loading-container" *ngIf="isLoading">
+      <div class="loading-spinner large"></div>
+      <p>Searching for products...</p>
+    </div>
+
+    <!-- No Results -->
+    <div class="no-results" *ngIf="!isLoading && hasSearched && searchResults.products.length === 0">
+      <div class="empty-icon">🔍</div>
+      <h3>No products found</h3>
+      <p>
+        Try adjusting your search criteria or explore different categories 
+        in {{ searchResults.location.city }}, {{ searchResults.location.district }}.
+      </p>
+    </div>
+
+    <!-- Products Grid -->
+    <div class="products-grid" *ngIf="!isLoading && searchResults.products.length > 0">
+      <div class="product-card" *ngFor="let product of searchResults.products; trackBy: trackByProductId">
+        <div class="product-image">
+          <img [src]="getProductImage(product)" 
+               [alt]="product.name"
+               (error)="onImageError($event)">
+          <!-- Show only if product.quantity > 0 -->
+          <div class="product-badge available" *ngIf="product.quantity > 0">
+            Available
+          </div>
+          <!-- Show OUT OF STOCK if product.quantity = 0 -->
+          <div class="product-badge out-of-stock" *ngIf="product.quantity === 0">
+            Out of Stock
+          </div>
+        </div>
+        
+        <div class="product-info">
+          <h3 class="product-name">{{ product.name }}</h3>
+          <p class="product-description">
+            {{ getShortDescription(product.description) }}
+          </p>
+          
+          <div class="product-price">{{ formatPrice(product.price) }}</div>
+          <div class="product-quantity">{{ product.quantity }} in stock</div>
+
+          <div class="product-seller">
+            <div class="seller-name">{{ product.shopName || 'Shop Name' }}</div>
+            <div class="seller-location">{{ product.city }}, {{ product.district }}</div>
+          </div>
+          
+          <div class="product-tags" *ngIf="product.tags && product.tags.length > 0">
+            <div class="tags-container">
+              <span class="tag" *ngFor="let tag of getDisplayTags(product.tags)">{{ tag }}</span>
+            </div>
+          </div>
+          
+          <div class="product-footer">
+            <!-- UPDATED: Order button now calls placeOrder instead of contactSeller -->
+            <button class="btn btn-contact" 
+                    (click)="placeOrder(product)" 
+                    [disabled]="!product.isAvailable || product.quantity === 0">
+              <span *ngIf="product.isAvailable && product.quantity > 0">🛒 Order</span>
+              <span *ngIf="!product.isAvailable || product.quantity === 0">❌ Out of Stock</span>
+            </button>
+            <button class="btn btn-primary" (click)="viewProductDetails(product)">
+              👁️ Details
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Footer -->
+    <div class="results-footer" *ngIf="!isLoading && searchResults.products.length > 0">
+      <p class="results-summary">
+        Showing {{ searchResults.products.length }} of {{ searchResults.totalResults }} products 
+        from {{ searchResults.totalSellers }} local sellers in {{ searchResults.location.city }}, {{ searchResults.location.district }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Order Modal Component -->
+  <app-order-modal
+    [product]="selectedProductForOrder"
+    [currentUser]="currentUser"
+    [isVisible]="showOrderModal"
+    (closeModal)="closeOrderModal()"
+    (orderPlaced)="onOrderPlaced($event)">
+  </app-order-modal>
+
+  <!-- Product Detail Modal -->
+  <div *ngIf="selectedProduct" 
+       class="modal-overlay" 
+       (click)="closeProductModal()" 
+       role="dialog" 
+       aria-modal="true" 
+       tabindex="-1">
+    <div class="modal-content" 
+         (click)="$event.stopPropagation()" 
+         tabindex="0">
+      <button class="modal-close" 
+              (click)="closeProductModal()" 
+              aria-label="Close product details" 
+              title="Close">&times;</button>
+      
+      <div class="modal-header">
+        <h2>{{ selectedProduct.name }}</h2>
+        <div class="modal-header-meta">
+          <span class="modal-category">{{ selectedProduct.category }}</span>
+          <span class="modal-price">{{ formatPrice(selectedProduct.price) }}</span>
+        </div>
+      </div>
+      
+      <div class="modal-body">
+        <!-- Images -->
+        <div class="product-images" *ngIf="selectedProduct.images && selectedProduct.images.length > 0">
+          <img *ngFor="let image of selectedProduct.images; trackBy: trackByImageUrl; let i = index" 
+               [src]="image" 
+               [alt]="selectedProduct.name + ' image ' + (i + 1)" 
+               class="modal-image" 
+               loading="lazy" 
+               (error)="onImageError($event)" />
+        </div>
+        
+        <!-- No Images -->
+        <div *ngIf="!selectedProduct.images || selectedProduct.images.length === 0" class="no-images">
+          <div class="no-image-placeholder">
+            📷
+            <p>No images available</p>
+          </div>
+        </div>
+        
+        <!-- Details -->
+        <div class="product-details">
+          <div class="product-description-full">
+            <h4>Description</h4>
+            <p>{{ selectedProduct.description || 'No description available.' }}</p>
+          </div>
+          
+          <div class="product-specs">
+            <h4>Product Information</h4>
+            <div class="spec-item">
+              <strong>Category:</strong> 
+              <span>{{ selectedProduct.category }}</span>
+            </div>
+            <div class="spec-item">
+              <strong>Price:</strong> 
+              <span class="price-highlight">{{ formatPrice(selectedProduct.price) }}</span>
+            </div>
+            <div class="spec-item">
+              <strong>Availability:</strong> 
+              <span [style.color]="getAvailabilityColor(selectedProduct)">
+                {{ getAvailabilityText(selectedProduct) }}
+              </span>
+            </div>
+            <div class="spec-item" *ngIf="selectedProduct.tags && selectedProduct.tags.length > 0">
+              <strong>Tags:</strong>
+              <div class="tags-container">
+                <span *ngFor="let tag of selectedProduct.tags" class="tag">{{ tag }}</span>
+              </div>
+            </div>
+            <div class="spec-item" *ngIf="selectedProduct.sellerId">
+              <strong>Seller ID:</strong> 
+              <span class="seller-id">{{ selectedProduct.sellerId }}</span>
+            </div>
+            <div class="spec-item" *ngIf="hasMultipleImages(selectedProduct)">
+              <strong>Images:</strong> 
+              <span>{{ selectedProduct.images.length }} images available</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <!-- UPDATED: Use placeOrder for better UX -->
+        <button class="btn btn-primary"
+                [disabled]="!selectedProduct.isAvailable || selectedProduct.quantity === 0"
+                (click)="placeOrder(selectedProduct); closeProductModal()">
+          <span *ngIf="selectedProduct.isAvailable && selectedProduct.quantity > 0">🛒 Place Order</span>
+          <span *ngIf="!selectedProduct.isAvailable || selectedProduct.quantity === 0">❌ Not Available</span>
+        </button>
+        <button class="btn btn-outline" (click)="closeProductModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div *ngIf="showLoginModal" 
+       class="modal-overlay" 
+       (click)="hideLogin()" 
+       role="dialog" 
+       aria-modal="true" 
+       tabindex="-1">
+    <div class="login-prompt-modal" 
+         (click)="$event.stopPropagation()" 
+         tabindex="0">
+      <button class="modal-close" 
+              (click)="hideLogin()" 
+              aria-label="Close login prompt" 
+              title="Close">&times;</button>
+      <div class="modal-header">
+        <h3>Login Required</h3>
+      </div>
+      <div class="modal-body">
+        <p>You need to be logged in to place orders. Please login or create an account to continue.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="hideLogin()">Cancel</button>
+        <button class="btn btn-secondary" (click)="goToSignup()">Sign Up</button>
+        <button class="btn btn-primary" (click)="goToLogin()">Login</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logout Confirmation Modal -->
+  <div *ngIf="showLogoutModal" 
+       class="modal-overlay" 
+       (click)="hideLogoutConfirmation()"
+       role="dialog" 
+       aria-modal="true" 
+       tabindex="-1">
+    <div class="logout-modal" 
+         (click)="$event.stopPropagation()"
+         tabindex="0">
+      <div class="modal-header">
+        <h3>Confirm Logout</h3>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to logout?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" 
+                (click)="hideLogoutConfirmation()"
+                type="button">
+          Cancel
+        </button>
+        <button class="btn btn-danger" 
+                (click)="confirmLogout()"
+                type="button">
+          Logout
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

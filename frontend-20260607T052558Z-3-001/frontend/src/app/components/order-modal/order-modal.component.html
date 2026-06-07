@@ -1,0 +1,150 @@
+<!-- order-modal.component.html -->
+<div *ngIf="isVisible && product" class="modal-overlay" (click)="close()">
+  <div class="order-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Place Order</h2>
+      <button class="close-btn" (click)="close()" type="button">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Product Summary -->
+      <div class="product-summary">
+        <div class="product-image">
+          <img [src]="product.images && product.images.length > 0 ? product.images[0] : '/assets/placeholder-product.jpg'" 
+               [alt]="product.name">
+        </div>
+        <div class="product-details">
+          <h3>{{ product.name }}</h3>
+          <p class="product-shop">{{ product.shopName }}</p>
+          <p class="product-location">{{ product.city }}, {{ product.district }}</p>
+          <p class="product-price">{{ formatPrice(product.price) }} per item</p>
+          <p class="product-stock">{{ product.quantity }} available</p>
+        </div>
+      </div>
+
+      <!-- Order Form -->
+      <form [formGroup]="orderForm" (ngSubmit)="onSubmit()" class="order-form">
+        <!-- Quantity -->
+        <div class="form-group">
+          <label for="quantity">Quantity *</label>
+          <input type="number" 
+                 id="quantity" 
+                 formControlName="quantity" 
+                 class="form-control"
+                 [class.error]="isFieldInvalid('quantity')"
+                 [max]="product.quantity"
+                 min="1"
+                 (change)="onQuantityChange()">
+          <div *ngIf="hasFieldError('quantity')" class="error-text">
+            {{ getFieldError('quantity') }}
+          </div>
+        </div>
+
+        <!-- Customer Information -->
+        <div class="form-section">
+          <h4>Customer Information</h4>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="customerName">Full Name *</label>
+              <input type="text" 
+                     id="customerName" 
+                     formControlName="customerName" 
+                     class="form-control"
+                     [class.error]="isFieldInvalid('customerName')"
+                     placeholder="Enter your full name">
+              <div *ngIf="hasFieldError('customerName')" class="error-text">
+                {{ getFieldError('customerName') }}
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="customerPhone">Phone Number *</label>
+              <input type="tel" 
+                     id="customerPhone" 
+                     formControlName="customerPhone" 
+                     class="form-control"
+                     [class.error]="isFieldInvalid('customerPhone')"
+                     placeholder="10-digit phone number">
+              <div *ngIf="hasFieldError('customerPhone')" class="error-text">
+                {{ getFieldError('customerPhone') }}
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="customerAddress">Delivery/Pickup Address *</label>
+            <textarea id="customerAddress" 
+                      formControlName="customerAddress" 
+                      class="form-control"
+                      [class.error]="isFieldInvalid('customerAddress')"
+                      rows="3"
+                      placeholder="Enter complete address for delivery or pickup"></textarea>
+            <div *ngIf="hasFieldError('customerAddress')" class="error-text">
+              {{ getFieldError('customerAddress') }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="customerEmail">Email (Optional)</label>
+            <input type="email" 
+                   id="customerEmail" 
+                   formControlName="customerEmail" 
+                   class="form-control"
+                   placeholder="your.email@example.com">
+          </div>
+        </div>
+
+        <!-- Payment Method -->
+        <div class="form-section">
+          <h4>Payment Method</h4>
+          <div class="payment-options">
+            <label class="radio-option">
+              <input type="radio" formControlName="paymentMethod" value="cash_on_delivery">
+              <span class="radio-label">Cash on Delivery</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" formControlName="paymentMethod" value="online">
+              <span class="radio-label">Online Payment</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Special Instructions -->
+        <div class="form-group">
+          <label for="specialInstructions">Special Instructions (Optional)</label>
+          <textarea id="specialInstructions" 
+                    formControlName="specialInstructions" 
+                    class="form-control"
+                    rows="3"
+                    placeholder="Any special requests or instructions for the seller..."></textarea>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="order-summary">
+          <h4>Order Summary</h4>
+          <div class="summary-row">
+            <span>{{ product.name }} × {{ orderForm.get('quantity')?.value || 1 }}</span>
+            <span>{{ formatPrice(product.price * (orderForm.get('quantity')?.value || 1)) }}</span>
+          </div>
+          <div class="summary-row total">
+            <strong>Total Amount: {{ formatPrice(getTotalAmount()) }}</strong>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline" (click)="close()" [disabled]="isSubmitting">
+        Cancel
+      </button>
+      <button type="submit" 
+              class="btn btn-primary" 
+              (click)="onSubmit()"
+              [disabled]="orderForm.invalid || isSubmitting">
+        <span *ngIf="!isSubmitting">Place Order</span>
+        <span *ngIf="isSubmitting">Placing Order...</span>
+      </button>
+    </div>
+  </div>
+</div>
